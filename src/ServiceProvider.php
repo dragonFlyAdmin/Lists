@@ -30,8 +30,14 @@ class ServiceProvider extends ParentProvider
 
         $this->loadViewsFrom($view_path, 'lists');
 
+        // Make config available
+        $config_path = __DIR__.'/../config/lists.php';
+        $this->mergeConfigFrom($config_path, 'lists');
+
+        // publish files
         $this->publishes([
             $view_path => base_path('resources/views/vendor/lists'),
+            $config_path => config_path('lists.php')
         ]);
 
         // include routes

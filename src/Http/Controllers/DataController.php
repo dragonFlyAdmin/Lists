@@ -1,11 +1,11 @@
 <?php
 
-namespace HappyDemon\Lists\Http;
+namespace HappyDemon\Lists\Http\Controllers;
 
 use Illuminate\Contracts\Http\Kernel;
 use HappyDemon\Lists\Definition;
 
-class Controller extends \App\Http\Controllers\Controller {
+class DataController extends \App\Http\Controllers\Controller {
 
     public function load($definition, Kernel $kernel)
     {

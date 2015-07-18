@@ -182,7 +182,7 @@ abstract class Table
         return array_merge($this->options, [
             'serverSide' => true,
             'processing' => true,
-            'ajax'       => route('lists.load', $this->kernel_identifier), //Route to data
+            'ajax'       => route(config('lists.route'), ['table' => $this->kernel_identifier]), //Route to data
             'columns'    => $columns,
             'ordering'   => $ordering
         ]);

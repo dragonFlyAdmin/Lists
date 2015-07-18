@@ -1,3 +1,3 @@
 <?php
 
-Route::get('lists/{definition}', ['uses' => '\HappyDemon\Lists\Http\Controller@load', 'as' => 'lists.load']);
+Route::get('lists/{table}', ['uses' => '\HappyDemon\Lists\Http\Controllers\DataController@load', 'as' => 'lists.load']);
