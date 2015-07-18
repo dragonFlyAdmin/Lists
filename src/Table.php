@@ -18,6 +18,13 @@ abstract class Table
     protected $kernel_identifier = null;
 
     /**
+     * The name of the route to use for the data requests.
+     *
+     * @var string|false
+     */
+    protected $route = false;
+
+    /**
      * Model instance we'll be working with
      *
      * @var Eloquent
@@ -182,7 +189,7 @@ abstract class Table
         return array_merge($this->options, [
             'serverSide' => true,
             'processing' => true,
-            'ajax'       => route(config('lists.route'), ['table' => $this->kernel_identifier]), //Route to data
+            'ajax'       => $this->route(), //Route to data
             'columns'    => $columns,
             'ordering'   => $ordering
         ]);
@@ -321,6 +328,17 @@ abstract class Table
                 $this->searchables[] = $meta['searchable'];
             }
         }
+    }
+
+    /**
+     * Return the URL to send data requests to.
+     * 
+     * @return string
+     */
+    protected function route()
+    {
+        $route = ($this->route) ?: config('lists.route');
+        return route($route, ['table' => $this->kernel_identifier]);
     }
 
     /**
