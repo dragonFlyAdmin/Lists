@@ -3,7 +3,8 @@
 namespace HappyDemon\Lists\Http;
 
 
-trait KernelTrait {
+trait KernelTrait
+{
     /**
      * @param $table
      *
@@ -13,11 +14,23 @@ trait KernelTrait {
      */
     public function loadTable($table)
     {
-        if(!isset($this->tables[$table]))
+        if (!isset($this->tables[$table]))
         {
-            abort(404, 'No table "'.$table.'" definition found.');
+            abort(404, 'No table "' . $table . '" definition found.');
         }
 
         return new $this->tables[$table];
+    }
+
+    /**
+     * Check if this table key is already assigned.
+     *
+     * @param string $table
+     *
+     * @return boolean
+     */
+    public function isTableDefined($table)
+    {
+        return array_key_exists($table, $this->tables);
     }
 }

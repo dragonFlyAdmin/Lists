@@ -332,12 +332,13 @@ abstract class Table
 
     /**
      * Return the URL to send data requests to.
-     * 
+     *
      * @return string
      */
     protected function route()
     {
         $route = ($this->route) ?: config('lists.route');
+
         return route($route, ['table' => $this->kernel_identifier]);
     }
 

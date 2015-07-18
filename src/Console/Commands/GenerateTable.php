@@ -75,15 +75,36 @@ class GenerateTable extends Command
         // Add a kernel identifier
         $kernel_id = ($this->option('kernel')) ?: strtolower(snake_case($table_name));
 
+        // Check if the kernel identifier is defined already
+        if (app('Illuminate\Contracts\Http\Kernel')->isTableDefined($kernel_id))
+        {
+            $this->error('Seems like there\'s already a table defined in your Http kernel with the identifier: "' . $kernel_id . '"');
+
+            return;
+        }
+
         $table->addProperty(
             Property::make('kernel_identifier')
                     ->makeProtected()
                     ->setDefaultValue("'" . $kernel_id . "'")
                     ->setPhpdoc(
                         PropertyPhpdoc::make()
-                            ->setVariableTag(VariableTag::make('string The identifier used for routing through the kernel.'))
+                                      ->setVariableTag(VariableTag::make('string The identifier used for routing through the kernel.'))
                     )
         );
+
+        if ($this->option('route') !== false)
+        {
+            $table->addProperty(
+                Property::make('route')
+                        ->makeProtected()
+                        ->setDefaultValue("'" . $this->option('route') . "'")
+                        ->setPhpdoc(
+                            PropertyPhpdoc::make()
+                                          ->setVariableTag(VariableTag::make('string The name of the route to use for data requests'))
+                        )
+            );
+        }
 
         // Add the methods to the object definition
         foreach ($methods as $name => $def)
@@ -126,14 +147,14 @@ class GenerateTable extends Command
         // Add use statements
         $class = str_replace('namespace ' . $app_namespace . 'Tables;', "\n" . 'namespace ' . $app_namespace . 'Tables;' . "\n\n" . implode("\n", $this->uses), $generatedCode);
 
-        if(!file_exists($file->getFilename()) || $this->option('overwrite'))
+        if (!file_exists($file->getFilename()) || $this->option('overwrite'))
         {
             // Save the new class
             file_put_contents($file->getFilename(), $class);
 
             $this->info($app_namespace . '\Tables\\' . $table_name . ' was created successfully!');
             $this->comment('It\'s time to add it in your Http kernel:');
-            $this->comment("'$kernel_id' => '".$app_namespace."Tables\\$table_name'");
+            $this->comment("'$kernel_id' => '" . $app_namespace . "Tables\\$table_name'");
         }
         else
         {
@@ -165,7 +186,9 @@ class GenerateTable extends Command
             ['model', 'm', InputOption::VALUE_REQUIRED, 'The model\'s class name (with namespace).', null],
             ['kernel', 'k', InputOption::VALUE_OPTIONAL, 'The kernel key identifier.', null],
             ['fields', 'f', InputOption::VALUE_OPTIONAL, 'A comma-separated list of field names.', []],
-            ['overwrite', 'o', InputOption::VALUE_NONE, 'Overwrite if there\'s already a definition with the same name.'],
+            ['route', 'r', InputOption::VALUE_OPTIONAL, 'The name of the route to use for data requests.', false],
+            ['overwrite', 'o', InputOption::VALUE_NONE,
+             'Overwrite if there\'s already a definition with the same name.'],
         ];
     }
 
@@ -174,7 +197,7 @@ class GenerateTable extends Command
      *
      * @param string $table  Class name
      * @param Object $model  Model object definition
-     * @param array $fields  The list of fields
+     * @param array  $fields The list of fields
      *
      * @return array
      */
