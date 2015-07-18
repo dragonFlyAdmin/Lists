@@ -4,11 +4,19 @@ namespace HappyDemon\Lists;
 
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Event;
 use Input;
 use Exception;
 
 abstract class Table
 {
+    /**
+     * The key to which this table definition will be bound in the Http kernel.
+     *
+     * @var string
+     */
+    protected $kernel_identifier = null;
+
     /**
      * Model instance we'll be working with
      *
@@ -61,6 +69,12 @@ abstract class Table
         $this->model = $this->model();
         $this->model_name = strtolower(class_basename($this->model));
 
+        // Set the kernel identifier if it wasn't previously
+        if($this->kernel_identifier == null)
+        {
+            $this->kernel_identifier = $this->model_name;
+        }
+
         // If no table id was set
         if ($this->table_id == null)
         {
@@ -75,11 +89,21 @@ abstract class Table
         {
             $this->fields = $fields;
         }
+
+        // Fire table init event
+        Event::fire('table.'.$this->kernel_identifier.'init', [$this]);
     }
 
+    /**
+     * Return fully formatted javascript.
+     *
+     * It will return a variable with a dataTables object
+     *
+     * @return string
+     */
     public function definition()
     {
-        $options = $this->prepareDefinitionOptions();
+        $options = $this->dataTableOptions();
 
         return view('lists::render_tag', [
             'options' => json_encode($options, JSON_PRETTY_PRINT),
@@ -93,7 +117,7 @@ abstract class Table
      *
      * @return array
      */
-    protected function prepareDefinitionOptions()
+    public function dataTableOptions()
     {
         $columns = [];
         $ordering = false;
@@ -152,7 +176,7 @@ abstract class Table
         return [
             'serverSide' => true,
             'processing' => true,
-            'ajax'       => route('lists.load', $this->model_name), //Route to data
+            'ajax'       => route('lists.load', $this->kernel_identifier), //Route to data
             'columns'    => $columns,
             'ordering'   => $ordering
         ];
