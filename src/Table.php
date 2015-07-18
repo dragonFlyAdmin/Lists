@@ -38,6 +38,12 @@ abstract class Table
     public $fields = [];
 
     /**
+     * DataTables js object initialisation options
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * Contains all relationships that should also be loaded
      *
      * @var array
@@ -70,7 +76,7 @@ abstract class Table
         $this->model_name = strtolower(class_basename($this->model));
 
         // Set the kernel identifier if it wasn't previously
-        if($this->kernel_identifier == null)
+        if ($this->kernel_identifier == null)
         {
             $this->kernel_identifier = $this->model_name;
         }
@@ -91,7 +97,7 @@ abstract class Table
         }
 
         // Fire table init event
-        Event::fire('table.'.$this->kernel_identifier.'init', [$this]);
+        Event::fire('table.' . $this->kernel_identifier . 'init', [$this]);
     }
 
     /**
@@ -107,8 +113,8 @@ abstract class Table
 
         return view('lists::render_tag', [
             'options' => json_encode($options, JSON_PRETTY_PRINT),
-            'tag' => 'table-'.snake_case($this->model_name),
-            'var' => 'table_'.snake_case($this->model_name)
+            'tag'     => 'table-' . snake_case($this->model_name),
+            'var'     => 'table_' . snake_case($this->model_name)
         ])->render();
     }
 
@@ -173,13 +179,13 @@ abstract class Table
             $columns[] = $format;
         }
 
-        return [
+        return array_merge($this->options, [
             'serverSide' => true,
             'processing' => true,
             'ajax'       => route('lists.load', $this->kernel_identifier), //Route to data
             'columns'    => $columns,
             'ordering'   => $ordering
-        ];
+        ]);
     }
 
     /**
@@ -433,13 +439,13 @@ abstract class Table
      * @param       $name       Name of the field
      * @param array $properties see Column::$options
      *
-     * @return Column
+     * @return $this
      */
     protected function addField($name, $properties = [])
     {
         $this->fields[$name] = $this->newField()->set($properties);
 
-        return $this->fields[$name];
+        return $this;
     }
 
     /**
@@ -535,4 +541,38 @@ abstract class Table
      * @return Eloquent
      */
     abstract public function model();
+
+    /**
+     * Set js dataTable options directly as a function.
+     *
+     * @param string $option Name of the option prefixed with 'set'
+     * @param array  $arguments
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    public function __call($name, $arguments)
+    {
+        $value = $arguments[0];
+
+        // These are set by the object, the developer should not be allowed to change them
+        $blackListed = ['serverSide', 'processing', 'ajax', 'data', 'columns', 'columnDefs', 'ordering'];
+
+        // Only set options if the call was prefixed with 'set'
+        if (starts_with('set', $name))
+        {
+            // remove 'set' from the name
+            $option = lcfirst(substr($name, 0, 3));
+
+            // Only set if not blacklisted
+            if (!in_array($option, $blackListed))
+            {
+                $this->options[$option] = $value;
+
+                return $this;
+            }
+
+            Throw new Exception($option . ' can\'t be set on "' . get_class($this) . '".');
+        }
+    }
 }
