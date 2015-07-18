@@ -1,0 +1,1 @@
+var {{$var}} = $('#{{$tag}}').DataTable({!!$options!!});
