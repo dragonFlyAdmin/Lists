@@ -152,7 +152,7 @@ class GenerateTable extends Command
             // Save the new class
             file_put_contents($file->getFilename(), $class);
 
-            $this->info($app_namespace . '\Tables\\' . $table_name . ' was created successfully!');
+            $this->info($app_namespace . 'Tables\\' . $table_name . ' was created successfully!');
             $this->comment('It\'s time to add it in your Http kernel:');
             $this->comment("'$kernel_id' => '" . $app_namespace . "Tables\\$table_name'");
         }

@@ -89,9 +89,15 @@ abstract class Table
         }
 
         // If no table id was set
-        if ($this->table_id == null)
+        if ($this->html_id == null)
         {
-            $this->table_id = 'table-' . $this->model_name;
+            $this->html_id = 'table-' . snake_case($this->kernel_identifier, '-');
+        }
+
+        // If no javascript var name was set
+        if($this->js_var == null)
+        {
+            $this->js_var = 'table' . studly_case($this->kernel_identifier);
         }
 
         // Load the fields
@@ -119,9 +125,9 @@ abstract class Table
         $options = $this->dataTableOptions();
 
         return view('lists::render_tag', [
-            'options' => json_encode($options, JSON_PRETTY_PRINT),
-            'tag'     => 'table-' . snake_case($this->model_name),
-            'var'     => 'table_' . snake_case($this->model_name)
+            'options' => json_encode($options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'tag'     => $this->html_id,
+            'var'     => $this->js_var
         ])->render();
     }
 
@@ -479,10 +485,18 @@ abstract class Table
 
 
     /**
-     * The HTML id for the table
+     * The id of the table for which we'll generate the javascript.
+     *
      * @var string
      */
-    public $table_id = null;
+    public $html_id = null;
+
+    /**
+     * The name of the javascript variable the dataTable object gets assigned to.
+     *
+     * @var string
+     */
+    public $js_var = null;
 
     /**
      * Contains all the fields that need to be selected.
