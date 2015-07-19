@@ -19,6 +19,7 @@ Next open up `app/config/app.php` and add the serviceProvider:
     
 Once that's done open up `app/Http/Kernel.php`, we'll need to add a trait to the class and a new property:
 
+```php
     use \HappyDemon\Lists\Http\KernelTrait;
     
     /**
@@ -27,6 +28,7 @@ Once that's done open up `app/Http/Kernel.php`, we'll need to add a trait to the
     * @var array
     */
     protected $tables = [];
+``
 
 Lastly you'll create a new folder called `Tables` in `app/Http` and you're all set to go.
 
@@ -38,4 +40,4 @@ However if you'd like to make use of the config that comes bundled, you could ru
 
 I've written down the documentation in this repo's [wiki](https://github.com/happyDemon/Lists/wiki)
 
-It won't be complete until I reach a sable milestone.
+It won't be complete until I reach a stable milestone.
