@@ -219,7 +219,7 @@ class GenerateTable extends Command
                 ],
                 'body' => "\t\t return new " . $model->getName() . '();',
             ],
-            'fields' => [
+            'setup' => [
                 'docs' => [
                     [
                         'type'  => 'setDescription',

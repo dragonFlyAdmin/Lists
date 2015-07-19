@@ -11,20 +11,6 @@ use Exception;
 abstract class Table
 {
     /**
-     * The key to which this table definition will be bound in the Http kernel.
-     *
-     * @var string
-     */
-    protected $kernel_identifier = null;
-
-    /**
-     * The name of the route to use for the data requests.
-     *
-     * @var string|false
-     */
-    protected $route = false;
-
-    /**
      * Model instance we'll be working with
      *
      * @var Eloquent
@@ -49,13 +35,6 @@ abstract class Table
      * @var array
      */
     protected $options = [];
-
-    /**
-     * Contains all relationships that should also be loaded
-     *
-     * @var array
-     */
-    public $relationships = [];
 
     /**
      * All searchable columns.
@@ -101,7 +80,7 @@ abstract class Table
         }
 
         // Load the fields
-        $fields = $this->fields();
+        $fields = $this->setup();
 
         // if fields were returned instead of set by $this->addField()
         if (is_array($fields))
@@ -179,16 +158,19 @@ abstract class Table
                 $format['data'] = $name;
             }
 
+            // If default content is set add it
             if ($field->default !== false)
             {
                 $format['defaultContent'] = $field->default;
             }
 
+            // Set the column type if needed
             if ($meta['type'] !== false)
             {
                 $format['type'] = $meta['type'];
             }
 
+            // Register the column
             $columns[] = $format;
         }
 
@@ -484,6 +466,21 @@ abstract class Table
     }
 
 
+
+    /**
+     * The key to which this table definition will be bound in the Http kernel.
+     *
+     * @var string
+     */
+    protected $kernel_identifier = null;
+
+    /**
+     * The name of the route to use for the data requests.
+     *
+     * @var string|false
+     */
+    protected $route = false;
+
     /**
      * The id of the table for which we'll generate the javascript.
      *
@@ -497,6 +494,13 @@ abstract class Table
      * @var string
      */
     public $js_var = null;
+
+    /**
+     * Contains all relationships that should also be loaded
+     *
+     * @var array
+     */
+    public $relationships = [];
 
     /**
      * Contains all the fields that need to be selected.
@@ -516,7 +520,7 @@ abstract class Table
      */
     protected function row_format_id($row)
     {
-        return $this->model_name . '-' . $row->id;
+        return $this->html_id . '-row-' . $row->id;
     }
 
     /**
@@ -566,7 +570,7 @@ abstract class Table
      *
      * @return array
      */
-    abstract function fields();
+    abstract public function setup();
 
     /**
      * Prepare the model instance for further queries.
