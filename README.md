@@ -28,7 +28,7 @@ Once that's done open up `app/Http/Kernel.php`, we'll need to add a trait to the
     * @var array
     */
     protected $tables = [];
-``
+```
 
 Lastly you'll create a new folder called `Tables` in `app/Http` and you're all set to go.
 
