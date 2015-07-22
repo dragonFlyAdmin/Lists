@@ -73,7 +73,7 @@ class Column
     {
         $meta = [
             'searchable' => false,
-            'relation' => $this->relation
+            'relation'   => $this->relation
         ];
 
         $meta = array_merge($meta, $this->formatColumnAs($definition));
@@ -96,7 +96,10 @@ class Column
     {
         $meta = [];
 
-        $table = $definition->getModelTableName($this->relation);
+        $replacements = [
+            '(:table)'       => $definition->getModelTableName($this->relation),
+            '(:primary_key)' => $definition->getModelPrimaryKey($this->relation)
+        ];
 
         if ($this->column != null || $this->select != false)
         {
@@ -107,14 +110,16 @@ class Column
                 {
                     if ($this->as == null)
                     {
-                        $this->as = $this->column;
+                        // make sure (:primary_key) gets replaced
+                        $this->as = strstr($this->column, $replacements);
                     }
 
-                    $this->column = $table . '.' . $this->column;
+                    // Prefix with the table name
+                    $this->column = $replacements['(:table)'] . '.' . $this->column;
                 }
                 else
                 {
-                    $this->column = str_replace('(:table)', $table, $this->column);
+                    $this->column = strstr($this->column, $replacements);
 
                     if ($this->as == null)
                     {
@@ -131,7 +136,7 @@ class Column
                     Throw new \Exception($this->title . ': "as" property should be defined if using select (" ' . $this->select . ' ") - ' . var_export($this->as, true));
                 }
 
-                $meta['select'] = str_replace('(:table)', $table, $this->select) . ' AS ' . $this->as;
+                $meta['select'] = strstr($this->select, $replacements) . ' AS ' . strstr($this->as, $replacements);
             }
 
             // Return the eventual column name if searchable
