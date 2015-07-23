@@ -1,19 +1,19 @@
 var {{$var}} = $('#{{$tag}}').DataTable({!!$options!!});
 
 @if($checkboxes == true)
-    // Check/unheck all checkboxes
-    {{$var}}.on('click', '.list-action-checkbox-select'; function(e){
-        {{$var}}.find('.list-action-checkbox').prop('checked', $(this).prop('checked'));
+    var container = $('#{{$tag}}_wrapper');
+
+
+    {{$var}}.on('init', function(){
+        console.log('hey');
+        container.prepend('<div class="row row-list-tools"></div>');
+        container.find('.row-list-tools').prepend('{!!$actions!!}');
     });
 
-    var container = {{$var}}.find('.dataTables_wrapper');
-
-    if(container.has('.row-list-tools').length == 0)
-    {
-        container = container.prepend('<div class="row row-list-tools"></div>');
-    }
-
-    container.prepend('@include('lists::actions')');
+    // Check/unheck all checkboxes
+    {{$var}}.on('click', '.list-action-checkbox-select', function(e){
+        {{$var}}.$('.list-action-checkbox').prop('checked', $(this).prop('checked'));
+    });
 
     container.on('click', '.lists-action-perform', function(e){
         e.preventDefault();
@@ -22,14 +22,18 @@ var {{$var}} = $('#{{$tag}}').DataTable({!!$options!!});
 
         if(action != '')
         {
-            var items = {{$var}}.find('.list-action-checkbox:checked');
+            var items = [];
+
+            {{$var}}.$('input[name="list-keys"]:checked').each(function(){
+                items.push($(this).val());
+            });
 
             if(items.length > 0)
             {
                 var option = select.find('option[value="'+action+'"]');
                 var indicator = container.find('.lists-action-indicator');
-
                 indicator.addClass('text-muted').text(option.data('status')).slideDown();
+
 
                 $.getJSON(option.data('url'), {list_keys: items}, function(data){
                     indicator.removeClass('text-muted');
@@ -56,7 +60,7 @@ var {{$var}} = $('#{{$tag}}').DataTable({!!$options!!});
                     indicator.addClass(addClass);
 
                     // Reset after 7 seconds
-                    setTimeOut(function(){
+                    setTimeout(function(){
                         indicator.slideUp().removeClass(addClass).text('');
                     }, 7000);
                 });

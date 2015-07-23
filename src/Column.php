@@ -108,10 +108,10 @@ class Column
                 // normalize the column's name
                 if (!str_contains($this->column, '.'))
                 {
-                    if ($this->as == null)
+                    if ($this->as == false)
                     {
                         // make sure (:primary_key) gets replaced
-                        $this->as = strstr($this->column, $replacements);
+                        $this->as = strtr($this->column, $replacements);
                     }
 
                     // Prefix with the table name
@@ -119,9 +119,9 @@ class Column
                 }
                 else
                 {
-                    $this->column = strstr($this->column, $replacements);
+                    $this->column = strtr($this->column, $replacements);
 
-                    if ($this->as == null)
+                    if ($this->as == false)
                     {
                         $this->as = explode('.', $this->column)[1];
                     }
@@ -136,7 +136,7 @@ class Column
                     Throw new \Exception($this->title . ': "as" property should be defined if using select (" ' . $this->select . ' ") - ' . var_export($this->as, true));
                 }
 
-                $meta['select'] = strstr($this->select, $replacements) . ' AS ' . strstr($this->as, $replacements);
+                $meta['select'] = strtr($this->select, $replacements) . ' AS ' . strtr($this->as, $replacements);
             }
 
             // Return the eventual column name if searchable

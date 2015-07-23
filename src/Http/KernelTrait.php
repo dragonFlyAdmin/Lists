@@ -5,12 +5,6 @@ namespace HappyDemon\Lists\Http;
 
 trait KernelTrait
 {
-    /**
-     * DataTable definitions (the key is used as a slug for routing)
-     *
-     * @var array
-     */
-    protected $tables = [];
 
     /**
      * @param $table

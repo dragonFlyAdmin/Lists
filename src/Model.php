@@ -105,9 +105,12 @@ class Model
         {
             foreach ($orderables as $order)
             {
-                $column_name = $this->columns[$order['column']]['name'];
+                $column_key = $this->columns[$order['column']]['name'];
 
-                $this->model = $this->model->orderBy($this->definition->fields[$column_name]->as, $order['dir']);
+                $column_name = ($this->definition->fields[$column_key]->select)
+                    ?: $this->definition->fields[$column_key]->column;
+
+                $this->model = $this->model->orderBy(DB::raw($column_name), $order['dir']);
             }
         }
 

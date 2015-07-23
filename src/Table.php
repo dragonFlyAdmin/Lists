@@ -107,16 +107,48 @@ abstract class Table
      */
     public function definition()
     {
-        $options = $this->dataTableOptions();
+        $has_actions = count($this->actions) > 0;
+
+        if ($has_actions && !array_key_exists('order', $this->options))
+        {
+            $this->setOrder([]);
+        }
+
+        $options = json_encode($this->dataTableOptions(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if (count($this->render_functions) == 0)
+        {
+
+            $parsed_options = $options;
+        }
+        else
+        {
+            $keys = array_keys($this->render_functions);
+
+            array_walk($keys, function (&$func)
+            {
+                $func = '"' . $func . '"';
+            });
+
+            $parsed_options = str_replace($keys, array_values($this->render_functions), $options);
+        }
+
 
         return view('lists::render_tag', [
-            'options'    => json_encode($options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'options'    => $parsed_options,
             'tag'        => $this->html_id,
             'var'        => $this->js_var,
-            'checkboxes' => count($this->actions) > 0,
-            'actions'    => $this->parseActions()
+            'checkboxes' => $has_actions,
+            'actions'    => str_replace(["\r", "\n"], '', view('lists::actions', ['actions' => $this->parseActions()]))
         ])->render();
     }
+
+    /**
+     * Contains the render functions that get injected into the column options
+     *
+     * @var array
+     */
+    protected $render_functions = [];
 
     /**
      * Prepare the options we should pass to the dataTables constructor.
@@ -147,7 +179,8 @@ abstract class Table
             // If a render function was defined add and call it.
             if ($field->format === false && $field->render !== false)
             {
-                $format['render'] = view('lists::render_func', ['content' => (string) call_user_func($field->render, $field)]);
+                $format['render'] = '<!' . $name . '!>';
+                $this->render_functions[$format['render']] = (string) view('lists::render_func', ['content' => (string) call_user_func($field->render, $field)]);
             }
 
             // If the field can be parsed, add it as orthogonal data
@@ -223,6 +256,7 @@ abstract class Table
         try
         {
             $this->prepareMetaData();
+
 
             // Prepare the model instance
             $query = (new Model($this, Input::get('columns', [])))
@@ -353,7 +387,7 @@ abstract class Table
      */
     protected function action_route($action)
     {
-        $route = ($this->action_route) ?: config('lists.perform');
+        $route = ($this->action_route) ?: config('lists.action_route');
 
         return route($route, ['table' => $this->kernel_identifier, 'action' => $action]);
     }
@@ -431,19 +465,18 @@ abstract class Table
         $newColumn = $this->newField()
                           ->set([
                               'name'       => 'list_keys',
-                              'title'      => view('lists::header_checkbox'),
+                              'title'      => view('lists::header_checkbox')->render(),
                               'orderable'  => false,
                               'searchable' => false,
-                              'render'     => [$this, 'renderCheckbox'],
                               'column'     => $this->getModelTableName() . '.' . $this->getModelPrimaryKey(),
-                              'as'         => $this->getModelPrimaryKey()
+                              'as'         => 'list_keys'
                           ]);
 
-        array_unshift($this->fields, ['list_keys' => $newColumn]);
+        $this->fields = ['list_keys' => $newColumn] + $this->fields;
     }
 
     // Render the column as a checkbox on the client-side
-    protected function renderCheckbox($field)
+    public function getListKeysRender($field)
     {
         return view('lists::render_checkbox', compact('field'));
     }
@@ -585,32 +618,44 @@ abstract class Table
         // Get the action definition and perform the action
         $definition = $this->actions[$action];
 
-        $perform = call_user_func($definition['action'], $ids);
+        try
+        {
+            $perform = call_user_func($definition['action'], $ids);
 
-        // When it returns false return the default error msg
-        if ($perform === false)
+            // When it returns false return the default error msg
+            if ($perform === false)
+            {
+                return [
+                    'status'  => 'error',
+                    'message' => trans($definition['messages']['error'])
+                ];
+            }
+
+            // If didn't return true and error occurred with a custom message
+            if ($perform !== true)
+            {
+                return [
+                    'status'  => 'error',
+                    'message' => trans($perform)
+                ];
+            }
+
+            // Otherwise it's a success!
+            return [
+                'status'  => 'success',
+                'type'    => 'complete',
+                'message' => trans($definition['messages']['success'])
+            ];
+        }
+            // Catch exceptions to make sure the request completes
+        catch (Exception $e)
         {
             return [
                 'status'  => 'error',
-                'message' => trans($definition['messages']['error'])
+                'message' => 'A code error occurred :/',
+                'error'   => $e->getMessage()
             ];
         }
-
-        // If didn't return true and error occurred with a custom message
-        if ($perform !== true)
-        {
-            return [
-                'status'  => 'error',
-                'message' => trans($perform)
-            ];
-        }
-
-        // Otherwise it's a success!
-        return [
-            'status'  => 'success',
-            'type'    => 'complete',
-            'message' => trans($definition['messages']['success'])
-        ];
     }
 
     /**
@@ -626,12 +671,13 @@ abstract class Table
      */
     protected function defineAction($slug, $title, $callable = false, array $messages = null)
     {
-        $messages = ($messages)
-            ?: array_merge([
-                'error'   => 'The "' . $slug . '" action failed.',
-                'success' => 'The "' . $slug . '" action was a success.',
-                'active'  => 'Processing "' . $slug . '" action.'
-            ], $messages);
+        $predefined_msgs = ($messages) ?: [];
+
+        $messages = array_merge([
+            'error'   => 'The "' . $slug . '" action failed.',
+            'success' => 'The "' . $slug . '" action was a success.',
+            'active'  => 'Processing "' . $slug . '" action.'
+        ], $predefined_msgs);
 
 
         // If callable isn't set we'll check if there's a method defined on this object
@@ -824,10 +870,10 @@ abstract class Table
         $blackListed = ['serverSide', 'processing', 'ajax', 'data', 'columns', 'columnDefs', 'ordering'];
 
         // Only set options if the call was prefixed with 'set'
-        if (starts_with('set', $name))
+        if (starts_with($name, 'set'))
         {
             // remove 'set' from the name
-            $option = lcfirst(substr($name, 0, 3));
+            $option = lcfirst(substr($name, 3));
 
             // Only set if not blacklisted
             if (!in_array($option, $blackListed))
