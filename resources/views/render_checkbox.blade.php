@@ -1,0 +1,1 @@
+return '<input type="checkbox" value="'+row.{{$field->as}}+'" name="list-keys" class="list-action-checkbox" />';

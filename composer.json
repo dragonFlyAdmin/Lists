@@ -1,7 +1,7 @@
 {
-    "name": "happydemon/lists",
+    "name": "dragonflyadmin/lists",
     "description": "Laravel DataTables generator/request handler.",
-    "keywords": ["laravel", "dataTables", "table", "helper", "grid", "request"],
+    "keywords": ["laravel", "dataTables", "table", "helper", "grid", "request", "bulk", "action"],
     "license": "MIT",
     "authors": [
         {
@@ -20,7 +20,7 @@
     },
     "autoload": {
         "psr-4": {
-            "HappyDemon\\Lists\\": "src/"
+            "DragonFlyAdmin\\Lists\\": "src/"
         }
     }
 }
