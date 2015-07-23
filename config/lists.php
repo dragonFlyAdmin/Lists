@@ -1,5 +1,6 @@
 <?php
 
     return [
-        'route' => 'lists.load'
+        'route' => 'lists.load',
+        'action_route' => 'lists.perform'
     ];

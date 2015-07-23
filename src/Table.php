@@ -88,6 +88,12 @@ abstract class Table
             $this->fields = $fields;
         }
 
+        // If actions were defined, prepend the fields with a checkbox field
+        if (count($this->actions))
+        {
+            $this->prependCheckboxColumn();
+        }
+
         // Fire table init event
         Event::fire('table.' . $this->kernel_identifier . 'init', [$this]);
     }
@@ -104,9 +110,11 @@ abstract class Table
         $options = $this->dataTableOptions();
 
         return view('lists::render_tag', [
-            'options' => json_encode($options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-            'tag'     => $this->html_id,
-            'var'     => $this->js_var
+            'options'    => json_encode($options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'tag'        => $this->html_id,
+            'var'        => $this->js_var,
+            'checkboxes' => count($this->actions) > 0,
+            'actions'    => $this->parseActions()
         ])->render();
     }
 
@@ -316,6 +324,14 @@ abstract class Table
                 $this->searchables[] = $meta['searchable'];
             }
         }
+
+        // make sure the primary key is always loaded
+        $pk = $this->getModelPrimaryKey();
+
+        if (!array_key_exists($pk, $this->select))
+        {
+            $this->select[$pk] = $this->getModelTableName() . '.' . $pk . ' AS ' . $pk;
+        }
     }
 
     /**
@@ -328,6 +344,18 @@ abstract class Table
         $route = ($this->route) ?: config('lists.route');
 
         return route($route, ['table' => $this->kernel_identifier]);
+    }
+
+    /**
+     * Return the URL to send action requests to.
+     *
+     * @return string
+     */
+    protected function action_route($action)
+    {
+        $route = ($this->action_route) ?: config('lists.perform');
+
+        return route($route, ['table' => $this->kernel_identifier, 'action' => $action]);
     }
 
     /**
@@ -396,6 +424,53 @@ abstract class Table
     }
 
     /**
+     * Prepend the table with a checkbox column
+     */
+    protected function prependCheckboxColumn()
+    {
+        $newColumn = $this->newField()
+                          ->set([
+                              'name'       => 'list_keys',
+                              'title'      => view('lists::header_checkbox'),
+                              'orderable'  => false,
+                              'searchable' => false,
+                              'render'     => [$this, 'renderCheckbox'],
+                              'column'     => $this->getModelTableName() . '.' . $this->getModelPrimaryKey(),
+                              'as'         => $this->getModelPrimaryKey()
+                          ]);
+
+        array_unshift($this->fields, ['list_keys' => $newColumn]);
+    }
+
+    // Render the column as a checkbox on the client-side
+    protected function renderCheckbox($field)
+    {
+        return view('lists::render_checkbox', compact('field'));
+    }
+
+    /**
+     * Parse the actions into data that the UI can use.
+     *
+     * @return array
+     */
+    protected function parseActions()
+    {
+        $actions = [];
+
+        foreach ($this->actions as $slug => $definition)
+        {
+            $actions[] = [
+                'url'    => $this->action_route($slug),
+                'title'  => $definition['title'],
+                'slug'   => $slug,
+                'status' => $definition['messages']['active']
+            ];
+        }
+
+        return $actions;
+    }
+
+    /**
      * Parse the result set into the format that DataTables needs
      *
      * @param $records
@@ -405,6 +480,8 @@ abstract class Table
     protected function parseData(Collection $records)
     {
         $output = [];
+
+        $prependCheckBox = count($this->actions) > 0;
 
         foreach ($records as $record)
         {
@@ -444,6 +521,13 @@ abstract class Table
                 $format['DT_RowData'] = $data_attr;
             }
 
+            // If we're adding checkboxes
+            if ($prependCheckBox)
+            {
+                // Make sure the first field gets the primary key sent over.
+                $format['list_checkbox'] = $record->{$this->getModelPrimaryKey()};
+            }
+
             // Parse the columns
             foreach ($this->fields as $name => $field)
             {
@@ -479,6 +563,100 @@ abstract class Table
     }
 
     /**
+     * Perform an action on the supplied ids.
+     *
+     * @param string $action
+     * @param array  $ids
+     *
+     * @return array
+     */
+    public function perform($action, $ids)
+    {
+        // If no ids were supplied return empty success type
+        if (count($ids) == 0)
+        {
+            return [
+                'status'  => 'success',
+                'type'    => 'empty',
+                'message' => ''
+            ];
+        }
+
+        // Get the action definition and perform the action
+        $definition = $this->actions[$action];
+
+        $perform = call_user_func($definition['action'], $ids);
+
+        // When it returns false return the default error msg
+        if ($perform === false)
+        {
+            return [
+                'status'  => 'error',
+                'message' => trans($definition['messages']['error'])
+            ];
+        }
+
+        // If didn't return true and error occurred with a custom message
+        if ($perform !== true)
+        {
+            return [
+                'status'  => 'error',
+                'message' => trans($perform)
+            ];
+        }
+
+        // Otherwise it's a success!
+        return [
+            'status'  => 'success',
+            'type'    => 'complete',
+            'message' => trans($definition['messages']['success'])
+        ];
+    }
+
+    /**
+     * Define an action that the end-user can perform on multiple entities from the table.
+     *
+     * @param string         $slug     url slug to route the action to
+     * @param string         $title    title tat will be displayed in the action list
+     * @param Callable|array $callable optional, an anon function or array [$object, $method] that can be called
+     * @param array          $messages
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    protected function defineAction($slug, $title, $callable = false, array $messages = null)
+    {
+        $messages = ($messages)
+            ?: array_merge([
+                'error'   => 'The "' . $slug . '" action failed.',
+                'success' => 'The "' . $slug . '" action was a success.',
+                'active'  => 'Processing "' . $slug . '" action.'
+            ], $messages);
+
+
+        // If callable isn't set we'll check if there's a method defined on this object
+        if ($callable == false)
+        {
+            $perform_method = 'perform' . studly_case($slug);
+
+            if (!method_exists($this, $perform_method))
+            {
+                Throw new Exception('The "' . $slug . '" action has no method defined on "' . get_class($this) . '"');
+            }
+
+            $callable = [$this, $perform_method];
+        }
+
+        $this->actions[$slug] = [
+            'title'    => $title,
+            'messages' => $messages,
+            'action'   => $callable
+        ];
+
+        return $this;
+    }
+
+    /**
      * Add a field to the list.
      *
      * @param       $name       Name of the field
@@ -503,6 +681,12 @@ abstract class Table
         return new Column($this->model);
     }
 
+    /**
+     * A list of actions the user is able to perform on the table.
+     *
+     * @var array
+     */
+    public $actions = [];
 
     /**
      * The key to which this table definition will be bound in the Http kernel.
@@ -517,6 +701,13 @@ abstract class Table
      * @var string|false
      */
     protected $route = false;
+
+    /**
+     * The name of the route to use for the action requests.
+     *
+     * @var string|false
+     */
+    protected $action_route = false;
 
     /**
      * The id of the table for which we'll generate the javascript.
@@ -557,7 +748,7 @@ abstract class Table
      */
     protected function row_format_id($row)
     {
-        return $this->html_id . '-row-' . $row->id;
+        return $this->html_id . '-row-' . $row->{$this->getModelPrimaryKey()};
     }
 
     /**
