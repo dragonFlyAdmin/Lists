@@ -6,7 +6,8 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Input;
 use HappyDemon\Lists\Definition;
 
-class DataController extends \App\Http\Controllers\Controller {
+class DataController extends \App\Http\Controllers\Controller
+{
 
     protected function loadTableDefinition(Kernel $kernel, $definition)
     {
@@ -39,11 +40,13 @@ class DataController extends \App\Http\Controllers\Controller {
      */
     public function perform($definition, $action, Kernel $kernel)
     {
-        try {
+        try
+        {
             $table = $this->loadTableDefinition($kernel, $definition);
+
             return response()->json($table->perform($action, Input::get('list_keys', [])));
         }
-        catch(\Exception $e)
+        catch (\Exception $e)
         {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
         }

@@ -5,7 +5,8 @@ namespace HappyDemon\Lists;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Event;
-use Input;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Input;
 use Exception;
 
 abstract class Table
@@ -168,6 +169,18 @@ abstract class Table
             }
 
             $meta = $field->getDefinitionMeta($this);
+
+            // Check if the table name is translatable
+            if (Lang::has('tables.' . $this->kernel_identifier . '.' . $name))
+            {
+                // Check if there's a specific definition
+                $name = trans('tables.' . $this->kernel_identifier . '.' . $name);
+            }
+            else if (Lang::has('tables.' . $name))
+            {
+                // Check if there's a global definition
+                $name = trans('tables.' . $name);
+            }
 
             $format = [
                 'name'       => $name,
@@ -627,7 +640,7 @@ abstract class Table
             {
                 return [
                     'status'  => 'error',
-                    'message' => trans($definition['messages']['error'])
+                    'message' => trans($definition['messages']['error'], ['slug' => $definition['slug']])
                 ];
             }
 
@@ -636,7 +649,7 @@ abstract class Table
             {
                 return [
                     'status'  => 'error',
-                    'message' => trans($perform)
+                    'message' => trans($perform, ['slug' => $definition['slug']])
                 ];
             }
 
@@ -644,7 +657,7 @@ abstract class Table
             return [
                 'status'  => 'success',
                 'type'    => 'complete',
-                'message' => trans($definition['messages']['success'])
+                'message' => trans($definition['messages']['success'], ['slug' => $definition['slug']])
             ];
         }
             // Catch exceptions to make sure the request completes
@@ -652,7 +665,7 @@ abstract class Table
         {
             return [
                 'status'  => 'error',
-                'message' => 'A code error occurred :/',
+                'message' => trans('lists::actions.messages.code_error', ['slug' => $definition['slug']]),
                 'error'   => $e->getMessage()
             ];
         }
@@ -674,9 +687,9 @@ abstract class Table
         $predefined_msgs = ($messages) ?: [];
 
         $messages = array_merge([
-            'error'   => 'The "' . $slug . '" action failed.',
-            'success' => 'The "' . $slug . '" action was a success.',
-            'active'  => 'Processing "' . $slug . '" action.'
+            'error'   => 'lists::actions.messages.error',
+            'success' => 'lists::actions.messages.success',
+            'active'  => 'lists::actions.messages.active',
         ], $predefined_msgs);
 
 
@@ -694,7 +707,7 @@ abstract class Table
         }
 
         $this->actions[$slug] = [
-            'title'    => $title,
+            'title'    => trans($title),
             'messages' => $messages,
             'action'   => $callable
         ];
