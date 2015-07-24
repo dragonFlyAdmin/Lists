@@ -2,5 +2,8 @@
 
     return [
         'route' => 'lists.load',
-        'action_route' => 'lists.perform'
+        'action_route' => 'lists.perform',
+        'locales' => [
+
+        ]
     ];

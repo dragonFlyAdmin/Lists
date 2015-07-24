@@ -25,14 +25,14 @@ class ServiceProvider extends ParentProvider
 
     public function boot()
     {
-        $resources = __DIR__ . '/../';
+        $resources = __DIR__ . '/../resources/';
         // Make views available
-        $view_path = $resources . 'resources/views';
+        $view_path = $resources . 'views';
 
         $this->loadViewsFrom($view_path, 'lists');
 
         // make translations available
-        $this->loadTranslationsFrom($resources . '/lang', 'lists');
+        $this->loadTranslationsFrom($resources . 'lang', 'lists');
 
         // Make config available
         $config_path = __DIR__ . '/../config/lists.php';
@@ -40,9 +40,9 @@ class ServiceProvider extends ParentProvider
 
         // publish files
         $this->publishes([
-            $view_path   => base_path('resources/views/vendor/lists'),
+            $view_path   => base_path('resources/views/vendor/lists/'),
             $config_path => config_path('lists.php'),
-            $resources . '/lang' => base_path('resources/lang/happydemon/lists'),
+            $resources . '/lang/en' => base_path('resources/lang/packages/en/lists'),
             $resources . '/assets' => public_path('assets')
         ]);
 

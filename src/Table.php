@@ -134,7 +134,6 @@ abstract class Table
             $parsed_options = str_replace($keys, array_values($this->render_functions), $options);
         }
 
-
         return view('lists::render_tag', [
             'options'    => $parsed_options,
             'tag'        => $this->html_id,
@@ -171,15 +170,15 @@ abstract class Table
             $meta = $field->getDefinitionMeta($this);
 
             // Check if the table name is translatable
-            if (Lang::has('tables.' . $this->kernel_identifier . '.' . $name))
+            if (Lang::has('tables.' . snake_case($this->kernel_identifier) . '.titles.' . $name))
             {
                 // Check if there's a specific definition
-                $name = trans('tables.' . $this->kernel_identifier . '.' . $name);
+                $name = trans('table_' . snake_case($this->kernel_identifier) . '.titles.' . $name);
             }
-            else if (Lang::has('tables.' . $name))
+            else if (Lang::has('tables.titles.' . $name))
             {
                 // Check if there's a global definition
-                $name = trans('tables.' . $name);
+                $name = trans('tables.titles.' . $name);
             }
 
             $format = [
@@ -226,6 +225,18 @@ abstract class Table
 
             // Register the column
             $columns[] = $format;
+        }
+
+        // Localise dataTables itself
+        if (config('app.locale') !== 'en')
+        {
+            $locale_file = config('lists.locales.' . config('app.locale'), false);
+
+            // Check if the locale is defined
+            if ($locale_file !== false)
+            {
+                $this->options['language']['url'] = url('assets/locale/' . $locale_file . '.json');
+            }
         }
 
         return array_merge($this->options, [
@@ -640,7 +651,7 @@ abstract class Table
             {
                 return [
                     'status'  => 'error',
-                    'message' => trans($definition['messages']['error'], ['slug' => $definition['slug']])
+                    'message' => $this->translatePerformMessage($definition['messages']['error'], $definition['slug'])
                 ];
             }
 
@@ -649,7 +660,7 @@ abstract class Table
             {
                 return [
                     'status'  => 'error',
-                    'message' => trans($perform, ['slug' => $definition['slug']])
+                    'message' => $this->translatePerformMessage($perform, $definition['slug'])
                 ];
             }
 
@@ -657,7 +668,7 @@ abstract class Table
             return [
                 'status'  => 'success',
                 'type'    => 'complete',
-                'message' => trans($definition['messages']['success'], ['slug' => $definition['slug']])
+                'message' => $this->translatePerformMessage($definition['messages']['success'], $definition['slug'])
             ];
         }
             // Catch exceptions to make sure the request completes
@@ -671,6 +682,32 @@ abstract class Table
         }
     }
 
+    /**
+     * Translate the provided message after performing an action.
+     *
+     * Checks for globally defined messages first, next local table definition
+     * @param $msg
+     * @param $slug
+     *
+     * @return string
+     */
+    protected function translatePerformMessage($msg, $slug)
+    {
+        if(Lang::has($msg))
+        {
+            return trans($msg, compact('slug'));
+        }
+        else if(Lang::has('tables.messages.'.$msg))
+        {
+            return trans('tables.messages.'.$msg, compact('slug'));
+        }
+        else if(Lang::has('table_'.snake_case($this->kernel_identifier).'.messages.'.$msg))
+        {
+            return trans('table'.snake_case($this->kernel_identifier).'.messages.'.$msg, compact('slug'));
+        }
+
+        return $msg;
+    }
     /**
      * Define an action that the end-user can perform on multiple entities from the table.
      *

@@ -1,1 +1,0 @@
-<input type="checkbox" name="list-keys-all" class="list-action-checkbox-select" />
