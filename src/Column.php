@@ -2,8 +2,6 @@
 
 namespace HappyDemon\Lists;
 
-use Illuminate\Database\Eloquent\Model;
-
 class Column
 {
     /**
@@ -25,13 +23,13 @@ class Column
     ];
 
     /**
-     * @var Model
+     * @var Table
      */
-    protected $model = null;
+    protected $table = null;
 
-    public function __construct(Model $model)
+    public function __construct(Table $table)
     {
-        $this->model = $model;
+        $this->table = $table;
     }
 
     public function __set($key, $val)
@@ -64,22 +62,20 @@ class Column
     /**
      * Return the column's meta data.
      *
-     * @param \HappyDemon\Lists\Table $definition
-     *
      * @return array
      * @throws \Exception
      */
-    public function getRequestMeta(Table $definition)
+    public function getRequestMeta()
     {
         $meta = [
             'searchable' => false,
             'relation'   => $this->relation
         ];
 
-        $meta = array_merge($meta, $this->formatColumnAs($definition));
+        $meta = array_merge($meta, $this->formatColumnAs());
 
         // Check if there's a format function
-        $this->checkFormat($definition);
+        $this->checkFormat();
 
         return $meta;
     }
@@ -87,18 +83,18 @@ class Column
     /**
      * Format provided columns or selects to a universal format.
      *
-     * @param \HappyDemon\Lists\Table $definition
-     *
      * @return array
      * @throws \Exception
      */
-    protected function formatColumnAs(Table $definition)
+    protected function formatColumnAs()
     {
-        $meta = [];
+        $meta = [
+            'searchable' => false
+        ];
 
         $replacements = [
-            '(:table)'       => $definition->getModelTableName($this->relation),
-            '(:primary_key)' => $definition->getModelPrimaryKey($this->relation)
+            '(:table)'       => $this->table->model->getTableName($this->relation),
+            '(:primary_key)' => $this->table->model->getPrimaryKey($this->relation)
         ];
 
         if ($this->column != null || $this->select != false)
@@ -127,6 +123,11 @@ class Column
                     }
                 }
 
+                if ($this->searchable)
+                {
+                    $meta['searchable'] = $this->as;
+                }
+
                 $meta['select'] = $this->column . ' AS ' . $this->as;
             }
             else if ($this->select != false)
@@ -135,12 +136,16 @@ class Column
                 {
                     Throw new \Exception($this->title . ': "as" property should be defined if using select (" ' . $this->select . ' ") - ' . var_export($this->as, true));
                 }
+                $this->column = strtr($this->select, $replacements);
+                $this->as = strtr($this->as, $replacements);
 
-                $meta['select'] = strtr($this->select, $replacements) . ' AS ' . strtr($this->as, $replacements);
+                $meta['select'] = $this->column . ' AS ' . $this->as;
+
+                if ($this->searchable)
+                {
+                    $meta['searchable'] = $this->column;
+                }
             }
-
-            // Return the eventual column name if searchable
-            $meta['searchable'] = ($this->searchable === true) ? $this->as : false;
         }
 
         return $meta;
@@ -148,34 +153,30 @@ class Column
 
     /**
      * Check if there's a format method defined
-     *
-     * @param \HappyDemon\Lists\Table $definition
      */
-    protected function checkFormat(Table $definition)
+    protected function checkFormat()
     {
         // Overwrite the format value if a method exists
-        $this->format = $this->checkMethodExists('format', $this->as, $definition);
+        $this->format = $this->checkMethodExists('format', $this->as);
     }
 
     /**
      * Return the column's meta data needed for rendering the JS tag
      *
-     * @param \HappyDemon\Lists\Table $definition
-     *
      * @return array
      */
-    public function getDefinitionMeta(Table $definition)
+    public function getDefinitionMeta()
     {
-        $this->formatColumnAs($definition);
+        $this->formatColumnAs();
 
         // Check if there's a render function
         if ($this->render === false)
         {
-            $this->render = $this->checkMethodExists('render', $this->as, $definition);
+            $this->render = $this->checkMethodExists('render', $this->as);
         }
 
         // Check if there's a format function
-        $this->checkFormat($definition);
+        $this->checkFormat();
 
         return [
             'type' => isset($this->options['type']) ? $this->options['type'] : false
@@ -187,17 +188,16 @@ class Column
      *
      * @param       $type   either 'render' or 'format'
      * @param       $column name of the column
-     * @param Table $definition
      *
      * @return array|null
      */
-    protected function checkMethodExists($type, $column, Table $definition)
+    protected function checkMethodExists($type, $column)
     {
         $method = 'get' . ucfirst(camel_case($column)) . ucfirst($type);
 
-        if (method_exists($definition, $method))
+        if (method_exists($this->table, $method))
         {
-            return [$definition, $method];
+            return [$this->table, $method];
         }
 
         return $this->{$type};

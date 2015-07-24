@@ -58,9 +58,12 @@ abstract class Table
 
     public function __construct()
     {
-        // Set the base model
-        $this->model = $this->model();
-        $this->model_name = strtolower(class_basename($this->model));
+        // Load the base model/query
+        $model = $this->model();
+
+        // Set the model
+        $this->model_name = strtolower(class_basename($model));
+        $this->model = new Model($model);
 
         // Set the kernel identifier if it wasn't previously
         if ($this->kernel_identifier == null)
@@ -281,14 +284,13 @@ abstract class Table
         {
             $this->prepareMetaData();
 
-
             // Prepare the model instance
-            $query = (new Model($this, Input::get('columns', [])))
-                ->setModel($this->model)
-                ->relations()
-                ->select()
-                ->search(Input::get('search', []))
-                ->order(Input::get('order', []))
+            $query = $this->model
+                ->setRequestColumns(Input::get('columns', []))
+                ->relations($this->relationships)
+                ->select($this->select)
+                ->search(Input::get('search', []), $this->searchables, $this->fields)
+                ->order(Input::get('order', []), $this->fields)
                 ->model;
 
             // Count all records
@@ -319,7 +321,7 @@ abstract class Table
         {
             foreach ($this->select as $id => $select)
             {
-                $table = $this->getModelTableName();
+                $table = $this->model->getTableName();
 
                 if (str_contains($select, '.'))
                 {
@@ -341,7 +343,7 @@ abstract class Table
                         if ($column > 0)
                         {
                             $relations = implode('.', $column);
-                            $table = $this->getModelTableName($relations);
+                            $table = $this->model->getTableName($relations);
                         }
                     }
                 }
@@ -384,11 +386,11 @@ abstract class Table
         }
 
         // make sure the primary key is always loaded
-        $pk = $this->getModelPrimaryKey();
+        $pk = $this->model->getPrimaryKey();
 
         if (!array_key_exists($pk, $this->select))
         {
-            $this->select[$pk] = $this->getModelTableName() . '.' . $pk . ' AS ' . $pk;
+            $this->select[$pk] = $this->model->getTableName() . '.' . $pk . ' AS ' . $pk;
         }
     }
 
@@ -417,71 +419,6 @@ abstract class Table
     }
 
     /**
-     * Get the correct table name.
-     *
-     * @param null|string $relations
-     *
-     * @return string
-     */
-    public function getModelTableName($relations = null)
-    {
-        return $this->getRelationInfo($relations)['table'];
-    }
-
-    /**
-     * Get the correct primary key name.
-     *
-     * @param null|string $relations
-     *
-     * @return string
-     */
-    public function getModelPrimaryKey($relations = null)
-    {
-        return $this->getRelationInfo($relations)['primary_key'];
-    }
-
-    /**
-     * Store the relation's table name & primary key
-     * @var array
-     */
-    protected $relation_cache = [];
-
-    /**
-     * Retrieve a relation or this model's table name & primary key name.
-     *
-     * Loops over relations to get the needed data.
-     *
-     * @param $relation
-     *
-     * @return array
-     */
-    protected function getRelationInfo($relation)
-    {
-        if (!array_key_exists($relation, $this->relation_cache))
-        {
-            $instance = $this->model;
-
-            // Loop over the (nested) relation to get the table name
-            if ($relation != null)
-            {
-                $relations = explode('.', $relation);
-                foreach ($relations as $rel)
-                {
-                    $instance = call_user_func([$instance, $rel]);
-                }
-            }
-
-            // Store the table's & primary key's name
-            $this->relation_cache[$relation] = [
-                'table'       => $instance->getTable(),
-                'primary_key' => $instance->getKeyName()
-            ];
-        }
-
-        return $this->relation_cache[$relation];
-    }
-
-    /**
      * Prepend the table with a checkbox column
      */
     protected function prependCheckboxColumn()
@@ -492,7 +429,7 @@ abstract class Table
                               'title'      => view('lists::header_checkbox')->render(),
                               'orderable'  => false,
                               'searchable' => false,
-                              'column'     => $this->getModelTableName() . '.' . $this->getModelPrimaryKey(),
+                              'column'     => $this->model->getTableName() . '.' . $this->model->getPrimaryKey(),
                               'as'         => 'list_keys'
                           ]);
 
@@ -576,13 +513,6 @@ abstract class Table
             if (count($data_attr) > 0)
             {
                 $format['DT_RowData'] = $data_attr;
-            }
-
-            // If we're adding checkboxes
-            if ($prependCheckBox)
-            {
-                // Make sure the first field gets the primary key sent over.
-                $format['list_checkbox'] = $record->{$this->getModelPrimaryKey()};
             }
 
             // Parse the columns
@@ -686,6 +616,7 @@ abstract class Table
      * Translate the provided message after performing an action.
      *
      * Checks for globally defined messages first, next local table definition
+     *
      * @param $msg
      * @param $slug
      *
@@ -693,21 +624,22 @@ abstract class Table
      */
     protected function translatePerformMessage($msg, $slug)
     {
-        if(Lang::has($msg))
+        if (Lang::has($msg))
         {
             return trans($msg, compact('slug'));
         }
-        else if(Lang::has('tables.messages.'.$msg))
+        else if (Lang::has('tables.messages.' . $msg))
         {
-            return trans('tables.messages.'.$msg, compact('slug'));
+            return trans('tables.messages.' . $msg, compact('slug'));
         }
-        else if(Lang::has('table_'.snake_case($this->kernel_identifier).'.messages.'.$msg))
+        else if (Lang::has('table_' . snake_case($this->kernel_identifier) . '.messages.' . $msg))
         {
-            return trans('table'.snake_case($this->kernel_identifier).'.messages.'.$msg, compact('slug'));
+            return trans('table' . snake_case($this->kernel_identifier) . '.messages.' . $msg, compact('slug'));
         }
 
         return $msg;
     }
+
     /**
      * Define an action that the end-user can perform on multiple entities from the table.
      *
@@ -746,7 +678,8 @@ abstract class Table
         $this->actions[$slug] = [
             'title'    => trans($title),
             'messages' => $messages,
-            'action'   => $callable
+            'action'   => $callable,
+            'slug'     => $slug
         ];
 
         return $this;
@@ -774,7 +707,7 @@ abstract class Table
      */
     protected function newField()
     {
-        return new Column($this->model);
+        return new Column($this);
     }
 
     /**
@@ -844,7 +777,7 @@ abstract class Table
      */
     protected function row_format_id($row)
     {
-        return $this->html_id . '-row-' . $row->{$this->getModelPrimaryKey()};
+        return $this->html_id . '-row-' . $row->{$this->model->getPrimaryKey()};
     }
 
     /**
