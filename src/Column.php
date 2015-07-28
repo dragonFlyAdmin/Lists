@@ -60,104 +60,14 @@ class Column
     }
 
     /**
-     * Return the column's meta data.
-     *
-     * @return array
-     * @throws \Exception
-     */
-    public function getRequestMeta()
-    {
-        $meta = [
-            'searchable' => false,
-            'relation'   => $this->relation
-        ];
-
-        $meta = array_merge($meta, $this->formatColumnAs());
-
-        // Check if there's a format function
-        $this->checkFormat();
-
-        return $meta;
-    }
-
-    /**
-     * Format provided columns or selects to a universal format.
-     *
-     * @return array
-     * @throws \Exception
-     */
-    protected function formatColumnAs()
-    {
-        $meta = [
-            'searchable' => false
-        ];
-
-        $replacements = [
-            '(:table)'       => $this->table->model->getTableName($this->relation),
-            '(:primary_key)' => $this->table->model->getPrimaryKey($this->relation)
-        ];
-
-        if ($this->column != null || $this->select != false)
-        {
-            if ($this->column != null)
-            {
-                // normalize the column's name
-                if (!str_contains($this->column, '.'))
-                {
-                    if ($this->as == false)
-                    {
-                        // make sure (:primary_key) gets replaced
-                        $this->as = strtr($this->column, $replacements);
-                    }
-
-                    // Prefix with the table name
-                    $this->column = $replacements['(:table)'] . '.' . $this->column;
-                }
-                else
-                {
-                    $this->column = strtr($this->column, $replacements);
-
-                    if ($this->as == false)
-                    {
-                        $this->as = explode('.', $this->column)[1];
-                    }
-                }
-
-                if ($this->searchable)
-                {
-                    $meta['searchable'] = $this->as;
-                }
-
-                $meta['select'] = $this->column . ' AS ' . $this->as;
-            }
-            else if ($this->select != false)
-            {
-                if ($this->as == null)
-                {
-                    Throw new \Exception($this->title . ': "as" property should be defined if using select (" ' . $this->select . ' ") - ' . var_export($this->as, true));
-                }
-                $this->column = strtr($this->select, $replacements);
-                $this->as = strtr($this->as, $replacements);
-
-                $meta['select'] = $this->column . ' AS ' . $this->as;
-
-                if ($this->searchable)
-                {
-                    $meta['searchable'] = $this->column;
-                }
-            }
-        }
-
-        return $meta;
-    }
-
-    /**
      * Check if there's a format method defined
      */
-    protected function checkFormat()
+    public function checkFormat()
     {
         // Overwrite the format value if a method exists
         $this->format = $this->checkMethodExists('format', $this->as);
+
+        return $this;
     }
 
     /**
@@ -167,8 +77,6 @@ class Column
      */
     public function getDefinitionMeta()
     {
-        $this->formatColumnAs();
-
         // Check if there's a render function
         if ($this->render === false)
         {
@@ -195,11 +103,13 @@ class Column
     {
         $method = 'get' . ucfirst(camel_case($column)) . ucfirst($type);
 
+        // Local methods always overwrite predefined ones
         if (method_exists($this->table, $method))
         {
             return [$this->table, $method];
         }
 
+        // return predefined
         return $this->{$type};
     }
 }

@@ -16,14 +16,7 @@ abstract class Table
      *
      * @var Eloquent
      */
-    public $model = null;
-
-    /**
-     * The name of the model (used for giving table TR an ID attribute
-     *
-     * @var null|string
-     */
-    protected $model_name = null;
+    public $dataSource = null;
 
     /**
      * Field definitions
@@ -59,16 +52,23 @@ abstract class Table
     public function __construct()
     {
         // Load the base model/query
-        $model = $this->model();
+        $data = $this->data();
 
-        // Set the model
-        $this->model_name = strtolower(class_basename($model));
-        $this->model = new Model($model);
+        // Set the data source
+        $this->dataSource = $this->prepareSource($data);
 
         // Set the kernel identifier if it wasn't previously
         if ($this->kernel_identifier == null)
         {
-            $this->kernel_identifier = $this->model_name;
+            $name = $this->dataSource->getIdName();
+
+            // Seems like none was defined
+            if ($name === false)
+            {
+                throw new Exception('No kernel identifier defined!');
+            }
+
+            $this->kernel_identifier = $name;
         }
 
         // If no table id was set
@@ -102,6 +102,30 @@ abstract class Table
         Event::fire('table.' . $this->kernel_identifier . 'init', [$this]);
     }
 
+    protected function prepareSource($data)
+    {
+        if (is_a($data, '\Illuminate\Database\Eloquent\Model'))
+        {
+            return new Sources\Eloquent($data);
+        }
+        else if (is_a($data, '\Illuminate\Database\Builder'))
+        {
+            return new Sources\DB($data);
+        }
+        else if (is_a($data, 'Illuminate\Support\Collection'))
+        {
+            return new Sources\Collection($data);
+        }
+        else if (is_array($data))
+        {
+            $data = new \Illuminate\Support\Collection($data);
+
+            return new Sources\Collection($data);
+        }
+
+        Throw new Exception('Unsupported data type');
+    }
+
     /**
      * Return fully formatted javascript.
      *
@@ -113,7 +137,8 @@ abstract class Table
     {
         $has_actions = count($this->actions) > 0;
 
-        if ($has_actions && !array_key_exists('order', $this->options))
+        // Don't order if it's not defined
+        if (!array_key_exists('order', $this->options))
         {
             $this->setOrder([]);
         }
@@ -165,6 +190,10 @@ abstract class Table
 
         foreach ($this->fields as $name => $field)
         {
+            $formatted = $this->dataSource->formatColumn($field);
+            $field->set($formatted);
+            $field->checkFormat();
+
             if ($ordering == false && $field->sortable == true)
             {
                 $ordering = true;
@@ -285,22 +314,19 @@ abstract class Table
             $this->prepareMetaData();
 
             // Prepare the model instance
-            $query = $this->model
+            $modelData = $this->dataSource
                 ->setRequestColumns(Input::get('columns', []))
-                ->relations($this->relationships)
-                ->select($this->select)
+                ->prepare()
                 ->search(Input::get('search', []), $this->searchables, $this->fields)
                 ->order(Input::get('order', []), $this->fields)
-                ->model;
+                ->order(Input::get('order', []), $this->fields)
+                ->getPreparedData();
 
             // Count all records
-            $total = clone $query;
-            $this->total_records = $total->count();
+            $this->total_records = $modelData['total'];
 
             // Limit records
-            $data = $query->skip(Input::get('start', 0))
-                          ->take(Input::get('length', 10))
-                          ->get();
+            $data = $modelData['records'];
 
             // Return collection
             return $this->parseData($data);
@@ -321,76 +347,25 @@ abstract class Table
         {
             foreach ($this->select as $id => $select)
             {
-                $table = $this->model->getTableName();
-
-                if (str_contains($select, '.'))
-                {
-                    $column = explode('.', $select);
-
-                    $as = array_pop($column);
-
-
-                    // Get the table name
-                    if ($column[0] != '(:table)')
-                    {
-                        // If the first column equals to the table name, remove it
-                        if ($column[0] == $table)
-                        {
-                            unset($column[0]);
-                        }
-
-                        // There's still elements we'll check  the model's relations
-                        if ($column > 0)
-                        {
-                            $relations = implode('.', $column);
-                            $table = $this->model->getTableName($relations);
-                        }
-                    }
-                }
-                else
-                {
-                    $as = $select;
-                }
-
-                // Overwrite the select statement
-                unset($this->select[$id]);
-                $this->select[$as] = $table . '.' . $as . ' AS ' . $as;
+                $this->dataSource->addSelect($select);
             }
         }
 
-        // Get the meta data of all the defined fields (columns)
+        // Check if there's a format method and prepare the DB fields if needed.
         foreach ($this->fields as $key => $field)
         {
-            $meta = $field->getRequestMeta($this);
 
-            // If a relation was set, store it
-            if ($meta['relation'] != null)
-            {
-                if (!in_array($meta['relation'], $this->relationships))
-                {
-                    $this->relationships[] = $meta['relation'];
-                }
-            }
-
-            // Set the select
-            if (isset($meta['select']))
-            {
-                $this->select[$key] = $meta['select'];
-            }
-
-            // Load all searchable files
-            if ($meta['searchable'] !== false)
-            {
-                $this->searchables[] = $meta['searchable'];
-            }
+            $formatted = $this->dataSource->formatColumn($field);
+            $field->set($formatted);
+            $field->checkFormat();
         }
 
         // make sure the primary key is always loaded
-        $pk = $this->model->getPrimaryKey();
+        $pk = $this->dataSource->getPrimaryKey();
 
         if (!array_key_exists($pk, $this->select))
         {
-            $this->select[$pk] = $this->model->getTableName() . '.' . $pk . ' AS ' . $pk;
+            $this->select[$pk] = $this->dataSource->getTableName() . '.' . $pk . ' AS ' . $pk;
         }
     }
 
@@ -423,17 +398,16 @@ abstract class Table
      */
     protected function prependCheckboxColumn()
     {
-        $newColumn = $this->newField()
-                          ->set([
-                              'name'       => 'list_keys',
-                              'title'      => view('lists::header_checkbox')->render(),
-                              'orderable'  => false,
-                              'searchable' => false,
-                              'column'     => $this->model->getTableName() . '.' . $this->model->getPrimaryKey(),
-                              'as'         => 'list_keys'
-                          ]);
+        $this->prependField('list_key', [
+            'name'       => 'list_keys',
+            'title'      => view('lists::header_checkbox')->render(),
+            'orderable'  => false,
+            'searchable' => false,
+            'column'     => $this->dataSource->getTableName() . '.' . $this->dataSource->getPrimaryKey(),
+            'as'         => 'list_keys'
+        ]);
 
-        $this->fields = ['list_keys' => $newColumn] + $this->fields;
+        return $this;
     }
 
     // Render the column as a checkbox on the client-side
@@ -701,6 +675,21 @@ abstract class Table
     }
 
     /**
+     * Add a field to at the beginning of the list.
+     *
+     * @param       $name       Name of the field
+     * @param array $properties see Column::$options
+     *
+     * @return $this
+     */
+    protected function prependField($name, $properties = [])
+    {
+        $this->fields = [$name => $this->newField()->set($properties)] + $this->fields;
+
+        return $this;
+    }
+
+    /**
      * Initiate a new column instance
      *
      * @return Column
@@ -777,7 +766,7 @@ abstract class Table
      */
     protected function row_format_id($row)
     {
-        return $this->html_id . '-row-' . $row->{$this->model->getPrimaryKey()};
+        return $this->html_id . '-row-' . $row->{$this->dataSource->getPrimaryKey()};
     }
 
     /**
@@ -834,7 +823,7 @@ abstract class Table
      *
      * @return Eloquent
      */
-    abstract public function model();
+    abstract public function data();
 
     /**
      * Set js dataTable options directly as a function.
