@@ -206,7 +206,7 @@ class GenerateTable extends Command
         $parsed = $this->parseFields($fields);
 
         $methods = [
-            'model'  => [
+            'data'  => [
                 'docs' => [
                     [
                         'type'  => 'setDescription',
