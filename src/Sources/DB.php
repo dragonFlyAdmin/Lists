@@ -107,7 +107,26 @@ class DB extends Contract
 
     public function formatColumn(Column $fieldColumnDefinition)
     {
-        // TODO: Implement formatColumn() method.
+        $column = $fieldColumnDefinition->column;
+
+        if($fieldColumnDefinition->as == null)
+        {
+            $as = (str_contains($column, '.'))
+                ? explode('.', $column)[1] : $column;
+        }
+
+        if($fieldColumnDefinition->select != false)
+        {
+            $column = $fieldColumnDefinition->select;
+        }
+
+        $this->addSelect($column . ' AS ' . $as, $fieldColumnDefinition);
+
+        return [
+            'searchable' => $fieldColumnDefinition->searchable,
+            'as' => $as,
+            'column' => $column
+        ];
     }
 
     public function getPreparedData()

@@ -14,7 +14,7 @@ abstract class Table
     /**
      * Model instance we'll be working with
      *
-     * @var Eloquent
+     * @var Sources\Contract
      */
     public $dataSource = null;
 
@@ -112,7 +112,7 @@ abstract class Table
         {
             return new Sources\DB($data);
         }
-        else if (is_a($data, 'Illuminate\Support\Collection'))
+        else if (is_a($data, '\Illuminate\Support\Collection'))
         {
             return new Sources\Collection($data);
         }
@@ -318,7 +318,6 @@ abstract class Table
                 ->setRequestColumns(Input::get('columns', []))
                 ->prepare()
                 ->search(Input::get('search', []), $this->searchables, $this->fields)
-                ->order(Input::get('order', []), $this->fields)
                 ->order(Input::get('order', []), $this->fields)
                 ->getPreparedData();
 
