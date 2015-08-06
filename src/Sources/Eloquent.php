@@ -82,6 +82,11 @@ class Eloquent extends DB
         return $this->getRelationInfo($relations)['primary_key'];
     }
 
+    public function getFormattedPrimaryKey($relations = null)
+    {
+        return $this->getTableName($relations) . '.' . $this->getPrimaryKey($relations);
+    }
+
     /**
      * Store the relation's table name & primary key
      * @var array
@@ -127,7 +132,7 @@ class Eloquent extends DB
     public function formatColumn(Column $fieldColumnDefinition)
     {
         // Store relation for loading, if needed
-        if($fieldColumnDefinition->relation != null && !in_array($fieldColumnDefinition->relation, $this->relations))
+        if ($fieldColumnDefinition->relation != null && !in_array($fieldColumnDefinition->relation, $this->relations))
         {
             $this->relations[] = $fieldColumnDefinition->relation;
         }
@@ -183,6 +188,7 @@ class Eloquent extends DB
 
         $as = $this->replace($as, $fieldColumnDefinition);
         $column = $this->replace($column, $fieldColumnDefinition);
+
         return compact('searchable', 'as', 'column');
     }
 

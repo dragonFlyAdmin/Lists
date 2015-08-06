@@ -3,7 +3,7 @@
 namespace HappyDemon\Lists;
 
 use Illuminate\Database\Eloquent\Model as Eloquent;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Input;
@@ -108,7 +108,7 @@ abstract class Table
         {
             return new Sources\Eloquent($data);
         }
-        else if (is_a($data, '\Illuminate\Database\Builder'))
+        else if (is_a($data, '\Illuminate\Database\Query\Builder'))
         {
             return new Sources\DB($data);
         }
@@ -364,7 +364,7 @@ abstract class Table
 
         if (!array_key_exists($pk, $this->select))
         {
-            $this->select[$pk] = $this->dataSource->getTableName() . '.' . $pk . ' AS ' . $pk;
+            $this->select[$pk] = $this->dataSource->getFormattedPrimaryKey() . ' AS ' . $pk;
         }
     }
 
@@ -402,7 +402,7 @@ abstract class Table
             'title'      => view('lists::header_checkbox')->render(),
             'orderable'  => false,
             'searchable' => false,
-            'column'     => $this->dataSource->getTableName() . '.' . $this->dataSource->getPrimaryKey(),
+            'column'     => $this->dataSource->getFormattedPrimaryKey(),
             'as'         => 'list_keys'
         ]);
 
@@ -444,8 +444,12 @@ abstract class Table
      *
      * @return array
      */
-    protected function parseData(Collection $records)
+    protected function parseData($records)
     {
+        if(!is_a($records, 'Collection'))
+        {
+            $records = Collection::make($records);
+        }
         $output = [];
 
         $prependCheckBox = count($this->actions) > 0;
