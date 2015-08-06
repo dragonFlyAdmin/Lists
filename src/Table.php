@@ -112,16 +112,6 @@ abstract class Table
         {
             return new Sources\DB($data);
         }
-        else if (is_a($data, '\Illuminate\Support\Collection'))
-        {
-            return new Sources\Collection($data);
-        }
-        else if (is_array($data))
-        {
-            $data = new \Illuminate\Support\Collection($data);
-
-            return new Sources\Collection($data);
-        }
 
         Throw new Exception('Unsupported data type');
     }
