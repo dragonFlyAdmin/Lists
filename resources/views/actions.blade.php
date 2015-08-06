@@ -13,7 +13,7 @@
     </form>
 </div>
 <div class="col-md-6 text-right">
-    <div class="pull-left lists-indicator hide"><i class="fa fa-spinner fa-spin"></i></div>
+    <div class="pull-left lists-indicator hide"><i class="fa fa-circle-o-notch fa-spin"></i></div>
     <span class="lists-action-indicator">
 
     </span>

@@ -40,11 +40,14 @@ class ServiceProvider extends ParentProvider
 
         // publish files
         $this->publishes([
-            $view_path   => base_path('resources/views/vendor/lists/'),
             $config_path => config_path('lists.php'),
-            $resources . '/lang/en' => base_path('resources/lang/packages/en/lists'),
             $resources . '/assets' => public_path('assets')
-        ]);
+        ], 'merge');
+
+        $this->publishes([
+            $view_path   => base_path('resources/views/vendor/lists/'),
+            $resources . '/lang/en' => base_path('resources/lang/packages/en/lists'),
+        ], 'solid');
 
         // include routes
         include __DIR__ . '/Http/routes.php';
