@@ -1,5 +1,5 @@
 {
-    "name": "dragonflyadmin/lists",
+    "name": "dragonfly/lists",
     "description": "Laravel DataTables generator/request handler.",
     "keywords": ["laravel", "dataTables", "table", "helper", "grid", "request", "bulk", "action"],
     "license": "MIT",

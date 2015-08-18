@@ -8,7 +8,7 @@
         showTools: function(actions, container)
         {
             // Places actions above table
-            container.prepend('<div class="row row-list-tools"></div>');
+            container.prepend('<div class="row-list-tools"></div>');
             container.find('.row-list-tools').prepend(actions);
         }
     };
@@ -75,7 +75,6 @@
                     // Get the action element (select option)
                     var option = select.find('option[value="' + action + '"]');
 
-                    console.log(settings.dataTable);
                     settings.tag.trigger('lists.spinner_start', [settings.container, action, option, items]);
 
                     // Send the action request
@@ -110,11 +109,10 @@
         },
         stop: function (e, container, action, option, data) {
             container.find('.lists-indicator').addClass('hide');
-            container.find('.lists-indicator').hide();
             // Hide after 7 seconds
             setTimeout(function () {
-                container.find('.lists-action-indicator').slideUp().removeClass(this.currentClass).addClass('text-muted').text('');
-                this.currentClass = 'text-muted';
+                container.find('.lists-action-indicator').slideUp().removeClass(settings.container.data('currentClass')).addClass('text-muted').text('');
+                settings.container.data('currentClass', 'text-muted');
             }, 7000);
         }
     };

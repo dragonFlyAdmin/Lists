@@ -1,8 +1,8 @@
 <?php
 
-namespace HappyDemon\Lists\Sources;
+namespace DragonFly\Lists\Sources;
 
-use HappyDemon\Lists\Column;
+use DragonFly\Lists\Column;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 

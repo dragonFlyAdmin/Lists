@@ -1,6 +1,6 @@
 <?php
 
-namespace HappyDemon\Lists;
+namespace DragonFly\Lists;
 
 use DB;
 use Illuminate\Database\Eloquent\Model as Eloquent;

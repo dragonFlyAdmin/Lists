@@ -1,8 +1,9 @@
 <?php
 
-namespace HappyDemon\Lists;
+namespace DragonFly\Lists;
 
-use HappyDemon\Lists\Console\Commands\GenerateTable;
+use DragonFly\Lists\Console\Commands\GenerateTable;
+use DragonFly\Lists\Http\Loader;
 use Illuminate\Support\ServiceProvider as ParentProvider;
 
 class ServiceProvider extends ParentProvider
@@ -19,6 +20,10 @@ class ServiceProvider extends ParentProvider
         {
             return new GenerateTable();
         });
+
+	    $this->app->singleton('TableLoader', function($app){
+		    return new Loader(app('Illuminate\Contracts\Http\Kernel'));
+	    });
 
         $this->commands('command.make.table');
     }
@@ -62,7 +67,7 @@ class ServiceProvider extends ParentProvider
     {
         return [
 
-            'command.make.table'
+            'command.make.table', 'TableLoader'
         ];
     }
 }

@@ -14,12 +14,12 @@ First run composer require:
     
 Next open up `app/config/app.php` and add the serviceProvider:
 
-    'DragonFlyAdmin\Lists\ServiceProvider',
+    'DragonFly\Lists\ServiceProvider',
     
 Once that's done open up `app/Http/Kernel.php`, we'll need to add a trait to the class and a new property:
 
 ```php
-    use \DragonFlyAdmin\Lists\Http\KernelTrait;
+    use \DragonFly\Lists\Http\KernelTrait;
     
     /**
     * DataTable definitions (the key is used as a slug for routing)
@@ -33,11 +33,11 @@ Lastly you'll create a new folder called `Tables` in `app/Http` and you're all s
 
 However if you'd like to make use of the config file & assets that comes bundled, you could run the following command in your terminal:
 
-    php artisan php artisan vendor:publish --provider="DragonFlyAdmin\Lists\ServiceProvider" --tag="merge"
+    php artisan php artisan vendor:publish --provider="DragonFly\Lists\ServiceProvider" --tag="merge"
     
 If you'd like to tweak the views or lang file you cn publish those using:
 
-    php artisan php artisan vendor:publish --provider="DragonFlyAdmin\Lists\ServiceProvider" --tag="solid"
+    php artisan php artisan vendor:publish --provider="DragonFly\Lists\ServiceProvider" --tag="solid"
 
 ## Features
 

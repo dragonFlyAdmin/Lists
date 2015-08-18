@@ -1,6 +1,6 @@
 <?php
 
-namespace HappyDemon\Lists;
+namespace DragonFly\Lists;
 
 class Column
 {

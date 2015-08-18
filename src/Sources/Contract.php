@@ -1,9 +1,9 @@
 <?php
 
-namespace HappyDemon\Lists\Sources;
+namespace DragonFly\Lists\Sources;
 
 
-use HappyDemon\Lists\Column;
+use DragonFly\Lists\Column;
 
 abstract class Contract
 {

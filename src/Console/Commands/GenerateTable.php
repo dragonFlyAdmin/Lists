@@ -1,4 +1,4 @@
-<?php namespace HappyDemon\Lists\Console\Commands;
+<?php namespace DragonFly\Lists\Console\Commands;
 
 use Illuminate\Console\Command;
 use Memio\Model\Phpdoc\VariableTag;
@@ -58,7 +58,7 @@ class GenerateTable extends Command
         
         $app_namespace = $this->getAppNamespace();
         
-        $extends = Object::make('HappyDemon\Lists\Table');
+        $extends = Object::make('DragonFly\Lists\Table');
         $model = Object::make($model_name);
         
         // Add use statements

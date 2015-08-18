@@ -1,18 +1,12 @@
 <?php
 
-namespace HappyDemon\Lists\Http\Controllers;
+namespace DragonFly\Lists\Http\Controllers;
 
-use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Input;
-use HappyDemon\Lists\Definition;
+use DragonFly\Lists\Definition;
 
 class DataController extends \App\Http\Controllers\Controller
 {
-
-    protected function loadTableDefinition(Kernel $kernel, $definition)
-    {
-        return $kernel->loadTable($definition);
-    }
 
     /**
      * Load data for a table.
@@ -22,9 +16,9 @@ class DataController extends \App\Http\Controllers\Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function load($definition, Kernel $kernel)
+    public function load($definition)
     {
-        $table = $this->loadTableDefinition($kernel, $definition);
+        $table = app('TableLoader')->table($definition);
 
         return response()->json($table->output());
     }
@@ -38,11 +32,11 @@ class DataController extends \App\Http\Controllers\Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function perform($definition, $action, Kernel $kernel)
+    public function perform($definition, $action)
     {
         try
         {
-            $table = $this->loadTableDefinition($kernel, $definition);
+	        $table = app('TableLoader')->table($definition);
 
             return response()->json($table->perform($action, Input::get('list_keys', [])));
         }
