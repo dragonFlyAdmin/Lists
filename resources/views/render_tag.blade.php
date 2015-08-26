@@ -1,8 +1,7 @@
 var {{$var}} = $('#{{$tag}}').DataTable({!!$options!!});
 
 @if($checkboxes == true)
-    $.dataTableLists({
-        tag: '{{$tag}}',
+    $(#{{$tag}}).dataTableLists({
         dataTable: {{$var}},
         actions: '{!!$actions!!}',
     });

@@ -12,7 +12,6 @@ class DataController extends \App\Http\Controllers\Controller
      * Load data for a table.
      *
      * @param                                   $definition
-     * @param \Illuminate\Contracts\Http\Kernel $kernel
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
@@ -28,7 +27,6 @@ class DataController extends \App\Http\Controllers\Controller
      *
      * @param                                   $definition
      * @param                                   $action
-     * @param \Illuminate\Contracts\Http\Kernel $kernel
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
