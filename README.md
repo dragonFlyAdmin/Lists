@@ -1,7 +1,7 @@
 Lists
 =====
 
-`DragonFlyAdmin\Lists` is a [Laravel](http://laravel.com) 5 package that makes it easy to set up [dataTables](https://datatables.net) for you front-end
+`DragonFly\Lists` is a [Laravel](http://laravel.com) 5 package that makes it easy to set up [dataTables](https://datatables.net) for you front-end
 code, as wel as handle the requests that it requires to retrieve data.
 
 I've taken a similar approach to this problem as Laravel's own form `Request`'s.
@@ -10,7 +10,7 @@ I've taken a similar approach to this problem as Laravel's own form `Request`'s.
 
 First run composer require:
 
-    composer require dragonflyadmin/lists
+    composer require dragonfly/lists
     
 Next open up `app/config/app.php` and add the serviceProvider:
 
