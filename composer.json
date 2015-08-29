@@ -9,6 +9,11 @@
             "email": "maxim.kerstens@gmail.com"
         }
     ],
+    "support": {
+        "docs": "https://dragonflylists.readme.io",
+        "wiki": "https://dragonflylists.readme.io",
+        "issues": "https://github.com/dragonFlyAdmin/Lists/issues"
+    },
     "require": {
         "php": ">=5.4.0",
         "illuminate/support": "5.0.x|5.1.x",
