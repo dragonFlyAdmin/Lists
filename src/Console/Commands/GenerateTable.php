@@ -69,7 +69,7 @@ class GenerateTable extends Command
         $methods = $this->prepareMethods($table_name, $model, $fields);
         
         // Initialise the object definition
-        $table = Object::make($app_namespace . 'Tables\\' . $table_name)
+        $table = Object::make($app_namespace . 'Http\Tables\\' . $table_name)
                        ->extend($extends);
 
         // Add a kernel identifier
