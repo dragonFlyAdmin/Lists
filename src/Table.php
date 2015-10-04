@@ -287,7 +287,7 @@ abstract class Table
         return [
             'draw'            => (int) Input::get('draw', 0),
             'recordsTotal'    => $this->total_records,
-            'recordsFiltered' => count($data),
+            'recordsFiltered' => $this->total_records,
             'data'            => $data,
         ];
     }
