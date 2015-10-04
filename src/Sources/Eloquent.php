@@ -196,8 +196,10 @@ class Eloquent extends DB
     {
         if ($column == null)
         {
-            $column = Collection::make(['relation' => null]);
+            $column = new \stdClass();
+            $column->relation = null;
         }
+
 
         $this->selects[] = $this->replace($select, $column);
     }

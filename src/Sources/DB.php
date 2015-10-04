@@ -22,6 +22,8 @@ class DB extends Contract
     protected $columns = [];
 
     protected $selects = [];
+    protected $allRecords = 0;
+
 
     /**
      * @param \Illuminate\Database\Query\Builder $model
@@ -41,6 +43,9 @@ class DB extends Contract
     public function select()
     {
         $this->model = $this->model->select(Database::raw(implode(', ', $this->selects)));
+
+        $fullModel = clone $this->model;
+        $this->allRecords = $fullModel->count();
 
         return $this;
     }
@@ -147,7 +152,8 @@ class DB extends Contract
         $total = clone $this->model;
 
         return [
-            'total' => $total->count(),
+            'total' => $this->allRecords,
+            'filtered' => $total->count(),
             'records' => $this->model->skip(Input::get('start', 0))
                                      ->take(Input::get('length', 10))
                                      ->get()

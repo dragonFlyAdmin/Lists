@@ -48,6 +48,11 @@ abstract class Table
      */
     protected $total_records = 0;
 
+    /**
+     * @var int
+     */
+    protected $filtered_records = 0;
+
 
     public function __construct()
     {
@@ -287,7 +292,7 @@ abstract class Table
         return [
             'draw'            => (int) Input::get('draw', 0),
             'recordsTotal'    => $this->total_records,
-            'recordsFiltered' => $this->total_records,
+            'recordsFiltered' => $this->filtered_records,
             'data'            => $data,
         ];
     }
@@ -299,8 +304,8 @@ abstract class Table
      */
     protected function loadData()
     {
-        try
-        {
+        //try
+        //{
             $this->prepareMetaData();
 
             // Prepare the model instance
@@ -313,17 +318,18 @@ abstract class Table
 
             // Count all records
             $this->total_records = $modelData['total'];
+            $this->filtered_records = $modelData['filtered'];
 
             // Limit records
             $data = $modelData['records'];
 
             // Return collection
             return $this->parseData($data);
-        }
+        /*}
         catch (Exception $e)
         {
             $this->error = $e->getMessage();
-        }
+        }*/
     }
 
     /**
@@ -343,10 +349,14 @@ abstract class Table
         // Check if there's a format method and prepare the DB fields if needed.
         foreach ($this->fields as $key => $field)
         {
-
             $formatted = $this->dataSource->formatColumn($field);
             $field->set($formatted);
             $field->checkFormat();
+
+            if($field->searchable)
+            {
+                $this->searchables[] = ($field->select)?: $field->column;
+            }
         }
 
         // make sure the primary key is always loaded
@@ -355,6 +365,7 @@ abstract class Table
         if (!array_key_exists($pk, $this->select))
         {
             $this->select[$pk] = $this->dataSource->getFormattedPrimaryKey() . ' AS ' . $pk;
+            $this->dataSource->addSelect('(:table).(:primary_key) AS ' . $pk);
         }
     }
 
