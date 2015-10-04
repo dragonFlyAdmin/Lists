@@ -143,9 +143,10 @@ class GenerateTable extends Command
         // Parse everything into a string
         $prettyPrinter = Build::prettyPrinter();
         $generatedCode = $prettyPrinter->generateCode($file);
-        
+
         // Add use statements
-        $class = str_replace('namespace ' . $app_namespace . 'Tables;', "\n" . 'namespace ' . $app_namespace . 'Tables;' . "\n\n" . implode("\n", $this->uses), $generatedCode);
+        $class = str_replace('namespace ' . $app_namespace . 'Http\Tables;', "\n" . 'namespace ' . $app_namespace . 'Http\Tables;' . "\n\n" . implode("\n", $this->uses), $generatedCode);
+
 
         if (!file_exists($file->getFilename()) || $this->option('overwrite'))
         {
@@ -154,7 +155,7 @@ class GenerateTable extends Command
 
             $this->info($app_namespace . 'Tables\\' . $table_name . ' was created successfully!');
             $this->comment('It\'s time to add it in your Http kernel:');
-            $this->comment("'$kernel_id' => '" . $app_namespace . "Tables\\$table_name'");
+            $this->comment("'$kernel_id' => '" . $app_namespace . "Http\Tables\\$table_name'");
         }
         else
         {
