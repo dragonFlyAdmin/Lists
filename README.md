@@ -37,7 +37,7 @@ However if you'd like to make use of the config file & assets that comes bundled
     
 If you'd like to tweak the views or lang file you cn publish those using:
 
-    php artisan php artisan vendor:publish --provider="DragonFly\Lists\ServiceProvider" --tag="solid"
+    php artisan vendor:publish --provider="DragonFly\Lists\ServiceProvider" --tag="solid"
 
 ## Features
 
