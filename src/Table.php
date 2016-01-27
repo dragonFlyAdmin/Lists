@@ -304,10 +304,9 @@ abstract class Table
      */
     protected function loadData()
     {
-        //try
-        //{
+        try
+        {
             $this->prepareMetaData();
-
             // Prepare the model instance
             $modelData = $this->dataSource
                 ->setRequestColumns(Input::get('columns', []))
@@ -325,11 +324,11 @@ abstract class Table
 
             // Return collection
             return $this->parseData($data);
-        /*}
+        }
         catch (Exception $e)
         {
             $this->error = $e->getMessage();
-        }*/
+        }
     }
 
     /**

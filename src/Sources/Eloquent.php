@@ -39,7 +39,7 @@ class Eloquent extends DB
 
     public function prepare()
     {
-        return $this->relations()->select();
+        return $this->select()->relations();
     }
 
     /**
@@ -51,6 +51,11 @@ class Eloquent extends DB
     {
         if (count($this->relations) > 0)
         {
+            foreach($this->relations as $relation)
+            {
+                $info = $this->getRelationInfo($relation);
+                $this->model = $this->model->join( $info['table'], $info['parent'].'.'.$info['foreign_key'], '=', $info['table'].'.'.$info['primary_key']);
+            }
             $this->model = $this->model->with($this->relations);
         }
 
@@ -108,6 +113,7 @@ class Eloquent extends DB
         {
             $instance = $this->model;
 
+
             // Loop over the (nested) relation to get the table name
             if ($relation != null)
             {
@@ -116,12 +122,15 @@ class Eloquent extends DB
                 {
                     $instance = call_user_func([$instance, $rel]);
                 }
+                $instance = $instance->getRelated();
             }
 
             // Store the table's & primary key's name
             $this->relation_cache[$relation] = [
                 'table'       => $instance->getTable(),
-                'primary_key' => $instance->getKeyName()
+                'primary_key' => $instance->getKeyName(),
+                'foreign_key' => $instance->getForeignKey(),
+                'parent'      => $this->model->getTable()
             ];
         }
 

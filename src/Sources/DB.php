@@ -150,7 +150,6 @@ class DB extends Contract
     public function getPreparedData()
     {
         $total = clone $this->model;
-
         return [
             'total' => $this->allRecords,
             'filtered' => $total->count(),
